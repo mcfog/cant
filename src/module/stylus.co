@@ -1,0 +1,20 @@
+stylus = require \stylus
+module.exports = class extends require \./module
+    -> super ...
+    re: '(.+).css$'
+    evalPath: ({req, res})->
+        @_path = @config \localpath
+        @_path += req.params.0 + '.styl'
+        @_path
+
+    getStylus: ->
+        stylus it.toString!
+        .set \filename, @_path
+        .set \compress, true
+
+    handleData: (data, {res, next})->
+        s = @getStylus data
+
+        (err, css)<-! s.render
+        return next err if err
+        res.end css

@@ -1,0 +1,13 @@
+coco = require \coco
+module.exports = class extends require \./module
+    ->super ...
+    re: '(.+).js$'
+    evalPath: ({req, res})->
+        path = @config \localpath
+        path += req.params.0
+        path += '.co'
+        path
+    evalCdnPath: (path)-> path.replace /.co$/, '.js'
+
+    handleData: (data, {res, next})->
+        res.end coco.compile data

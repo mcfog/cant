@@ -1,0 +1,32 @@
+{
+  "name": "Cant"
+  , "version": "0.0.0"
+  , "description": "dialect solution"
+  , "keywords": [
+    "language"
+    , "compiler"
+    , "coffeescript"
+    , "coco"
+    , "jade"
+    , "stylus"
+    , "javascript"
+  ]
+  , "author": "McFog <mcfogw@gmail.com>"
+  , "engines": {
+    "node": ">= 0.4.0"
+  }
+  , "directories": {
+    "lib": "./lib"
+  }
+  , "main": "./lib/cant"
+  , "bin": {
+    "cant-compile": "./lib/compiler.js"
+  }
+  , "repository": {
+    "type": "git"
+    , "url": "git://github.com/mcfog/cant.git"
+  }
+  , "dependencies": {
+    "connect": "1.x"
+  }
+}

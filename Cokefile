@@ -1,0 +1,84 @@
+{spawn} = require \child_process
+
+SHELL = if(\win32 == process.platform) then "cmd /c " else "sh -c "
+
+output = (error, stdout, stderr)->
+    if (error)
+        console.error stderr#.trim!
+    else
+        console.log stdout#.trim!
+    void
+
+StreamReader = class
+    (stream, encoding = \ascii, cb)->
+        buffer = ''
+        consumeLine = ->
+            lines = buffer.split \\n
+            while lines.length>1
+                cb lines.shift!
+        stream.setEncoding encoding
+        (data) <- stream.on \data
+        buffer := buffer + data
+        consumeLine!
+        void
+
+run = (cmd, con, ..., after)->
+    if(con === after)
+        con = console
+    con?.log? \> + cmd
+
+    [cmd,...args] = (SHELL+cmd).split(' ')
+    p = spawn cmd, args
+    #console.log p.pid,cmd,args
+    new StreamReader p.stdout, \ascii, (line)->
+        con?.log? line
+    new StreamReader p.stderr, \ascii, (line)->
+        con?.error? line
+
+    p.on 'exit', ->
+        after?!
+
+    p.stdin.end!
+
+task \build, 'build' , (options)->
+    <- run "rm -r lib"
+    <- run "cp -r src lib"
+    fs = require \fs
+    path = require \path
+    walk = (d, cb)->
+        @@callee.counter += 1
+        files = fs.readdirSync d
+        _qwop = !->
+            if files.length == 0
+                walk.counter -= 1
+                if walk.counter == 0
+                    return cb?!
+                else
+                    return
+            file = files.shift!
+            lpath = path.join d,file
+            stat = fs.statSync lpath
+            if stat.isDirectory! && file != 'build'
+                walk(d + \/ + file, cb)
+                return _qwop!
+            if ! stat.isFile!
+                return _qwop!
+            # try
+            #     fs.mkdirSync 'build/'+d
+            if /\.co$/.test file
+                <- run [
+                    "coco -c "
+                    lpath
+                    "&rm "
+                    lpath
+                ] * ''
+                _qwop!
+            else
+                _qwop!
+
+        _qwop!
+    walk.counter = 0
+    <- walk './lib'
+    <- run 'rm -r ./lib/Cokefile ./lib/.*', null
+
+    console.log \done.

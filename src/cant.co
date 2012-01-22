@@ -1,0 +1,56 @@
+connect = require \connect
+fs = require \fs
+
+config =
+    baseuri: '/static' #baseuri used in view
+    routepath: '/static' #route on-the-fly compilers on this path, `false` to disable
+    expire: 30 #expire time for on-the-fly compiler
+    localpath: 'static' #find dialectical files here
+
+module.exports = cant = 
+    baseuri:~ ->@config \baseuri
+    config: (name, val)->
+        switch
+        case typeof name is \object
+            config<<<name
+        case val is undefined
+            return config[name]
+        default
+            config[name] = val
+        cant
+    register: (re, fn)->
+        handlers.push [re, fn]
+        cant
+    use: ->
+        for arg of @@
+            switch
+            case typeof arg is \string
+                @Module[arg]attach cant
+            default
+                arg.attach cant
+        cant
+
+    middleware: ->
+        routepath = @config \routepath
+        return if !routepath
+        connect do
+            connect.router !(app)->
+                for [re, fn] of handlers
+                    re = if typeof re is \string then //#{routepath}#{re}// else re
+                    app.get re, fn
+
+    cache: !({req, res}, mtime, cb)->
+        expire = cant.config \expire
+        if expire > 0
+            ifs = req.header \If-Modified-Since
+            cc = {}
+            cc[name] = val for [name,val] of req.header \Cache-Control .split /\s*,\s*/ .map ->it.split /\s*=\s*/
+            return res.send 304 if cc['max-age'] > 0 && ifs && new Date ifs >= mtime
+            res.header \Cache-Control, "max-age=#expire"
+            res.header \Last-Modified, mtime.toGMTString!
+            cb!
+    compile: !->
+        ...
+    Module: require \./module
+
+handlers = []
