@@ -44,7 +44,8 @@ module.exports = cant =
         if expire > 0
             ifs = req.header \If-Modified-Since
             cc = {}
-            cc[name] = val for [name,val] of req.header \Cache-Control .split /\s*,\s*/ .map ->it.split /\s*=\s*/
+            for [name,val] of (req.header \Cache-Control ?.split /\s*,\s*/ .map ->it.split /\s*=\s*/) || []
+                cc[name] = val if name && val 
             return res.send 304 if cc['max-age'] > 0 && ifs && new Date ifs >= mtime
             res.header \Cache-Control, "max-age=#expire"
             res.header \Last-Modified, mtime.toGMTString!
