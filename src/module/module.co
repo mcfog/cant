@@ -12,7 +12,8 @@ module.exports = class Module
 
     config: -> require \../cant .config ...
     attach: (cant)->
-        cant.register @re, (req,res,next)~>
+        cant.register @re, !(req,res,next)~>
+            fs = require \fs
             path = @evalPath {req, res, next}
 
             (err, stat)<~! fs.stat path
