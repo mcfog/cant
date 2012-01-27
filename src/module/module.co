@@ -1,3 +1,5 @@
+sha1 = ->
+    require \crypto .createHash \sha1 .update it .digest \hex
 module.exports = class Module
     ->void
     re: ''#route re
@@ -6,7 +8,7 @@ module.exports = class Module
     handleData: (data, {req,res,next})->...#handle the file data, must call res.end or next
 
     _modules = {}
-    for name of [\stylus \stylus_nib \coco] #lazy load
+    for name of [\stylus \stylus_nib \coco \raw] #lazy load
         let then @__defineGetter__ name, ->
             _modules["./#name"] || _modules["./#name"] = new (require "./#name")
 
@@ -17,10 +19,21 @@ module.exports = class Module
             path = @evalPath {req, res, next}
 
             (err, stat)<~! fs.stat path
-            return next err if err
+            return next! if err
             <~! cant.cache {req, res, next}, stat.mtime
 
+            cpath = require \path .join process.env.TEMP, "cant.#{sha1 path}.dat"
+            (err, cstat)<~! fs.stat cpath
+            if !err && cstat.mtime >= stat.mtime
+                (err, data)<~! fs.readFile cpath
+                return next err||new Error if err||!data
+                return res.end data
             (err, data)<~! fs.readFile path
             return next err||new Error if err||!data
 
-            @handleData data, {req, res, next}
+            (err, content)<~! @handleData data.toString!
+            return next err if err
+            (err)<~! fs.writeFile cpath, content
+            return next err if err
+
+            res.end content

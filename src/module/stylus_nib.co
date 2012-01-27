@@ -2,7 +2,7 @@ nib = require \nib
 stylus = require \stylus
 module.exports = class extends require \./stylus
     ->super ...
-    re: '(.+).css$'
+    re: '(.+)\\.css$'
 
     getStylus: ->
         stylus it.toString!
