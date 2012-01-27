@@ -22,7 +22,7 @@ module.exports = class Module
             return next! if err
             <~! cant.cache {req, res, next}, stat.mtime
 
-            cpath = require \path .join process.env.TEMP, "cant.#{sha1 path}.dat"
+            cpath = require \path .join './tmp', "cant.#{sha1 path}.dat"
             (err, cstat)<~! fs.stat cpath
             if !err && cstat.mtime >= stat.mtime
                 (err, data)<~! fs.readFile cpath
