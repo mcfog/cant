@@ -1,11 +1,8 @@
 stylus = require \stylus
 module.exports = class extends require \./module
     -> super ...
-    re: '(.+)\\.css$'
-    evalPath: ({req, res})->
-        @_path = @config \localpath
-        @_path += req.params.0 + '.styl'
-        @_path
+    pattern: ['(.+)\\.css$', '$1.styl']
+    rpattern: ['(.+)\\.styl$', '$1.css']
 
     getStylus: ->
         stylus it.toString!
@@ -16,5 +13,5 @@ module.exports = class extends require \./module
         s = @getStylus data
 
         (err, css)<-! s.render
-        return next err if err
+        return cb err if err
         cb null, css

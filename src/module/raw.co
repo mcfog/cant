@@ -1,11 +1,6 @@
-coco = require \coco
 module.exports = class extends require \./module
     ->super ...
-    re: '(.+)$'
-    evalPath: ({req, res})->
-        path = @config \localpath
-        path += req.params.0
-        path
-    evalCdnPath: (path)-> path
+    pattern: ['(.+)$', '$1']
+    rpattern: ['(.+)$', '$1']
 
     handleData: (data, cb)->cb null, data

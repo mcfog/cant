@@ -2,13 +2,16 @@ connect = require \connect
 fs = require \fs
 
 config =
-    baseuri: '/static' #baseuri used in view
-    routepath: '/static' #route on-the-fly compilers on this path, `false` to disable
+    baseUri: '/static' #baseuri used in view
+    attachPoint: '/static'
+
+    cdnPrefix: 'cdn'
+    localPath: 'static' #find dialectical files here
+
     expire: 30 #expire time for on-the-fly compiler
-    localpath: 'static' #find dialectical files here
 
 module.exports = cant = 
-    baseuri:~ ->@config \baseuri
+    baseuri:~ ->@config \baseUri
     config: (name, val)->
         switch
         case typeof name is \object
@@ -18,26 +21,32 @@ module.exports = cant =
         default
             config[name] = val
         cant
-    register: (re, fn)->
-        handlers.push [re, fn]
+    register: (mod)->
+        mods.push mod
         cant
     use: ->
         for arg of @@
-            switch
-            case typeof arg is \string
-                @Module[arg]attach cant
-            default
-                arg.attach cant
+            if typeof arg is \string
+                cant.register @Module[arg]
+            else
+                cant.register arg
         cant
 
     middleware: ->
-        routepath = @config \routepath
+        routepath = @config \routePath
         return if !routepath
         connect do
             connect.router !(app)->
-                for [re, fn] of handlers
-                    re = if typeof re is \string then //#{routepath}#{re}// else re
-                    app.get re, fn
+                app.get //#{cant.config \attachPoint}(/.+)$//
+                , (req,res,next)->
+                    path = req.params.0
+                    for mod of mods
+                        re = mod.pattern.0
+                        re = if typeof re is \string then //#{routepath}#{re}// else re
+                        match = re.exec path
+                        continue if !match
+                        return mod.handleRequest path, @@
+                    next!
 
     cache: !({req, res}, mtime, cb)->
         expire = cant.config \expire
@@ -46,12 +55,64 @@ module.exports = cant =
             cc = {}
             for [name,val] of (req.header \Cache-Control ?.split /\s*,\s*/ .map ->it.split /\s*=\s*/) || []
                 cc[name] = val if name && val 
-            return res.send 304 if cc['max-age'] > 0 && ifs && new Date ifs >= mtime
+            return res.writeHead 304 if cc['max-age'] > 0 && ifs && new Date ifs >= mtime
             res.header \Cache-Control, "max-age=#expire"
             res.header \Last-Modified, mtime.toGMTString!
         cb!
     compile: !->
-        ...
+        fs = require \fs
+        path = require \path
+        walk = (d, cb)->
+            @@callee.counter += 1
+            files = fs.readdirSync d
+            _qwop = !->
+                if files.length == 0
+                    walk.counter -= 1
+                    if walk.counter == 0
+                        return cb?!
+                    else
+                        return
+                file = files.shift!
+                lpath = path.join d,file .replace //\\//g, '/'
+                stat = fs.statSync lpath
+                if stat.isDirectory!
+                    walk lpath, cb
+                    return _qwop!
+                if !stat.isFile!
+                    return _qwop!
+                
+                _qwop_mod = !(mod, next)->
+                    console.log [mod.rpattern, lpath]
+                    re = mod.rpattern.0
+                    re = if typeof re is \string then //#re// else re
+                    return next true if !re.exec lpath
+
+                    (err, data)<~! fs.readFile lpath
+                    return next err if err
+
+                    cpath = path.join (cant.config \cdnPrefix), lpath.replace re, mod.rpattern.1
+
+                    (err)<~! (require \mkdirp) path.dirname cpath
+                    return next err if err
+
+                    (err, content)<~! mod.handleData data.toString!
+                    return next err if err
+                    (err)<~! fs.writeFile cpath, content
+                    return next err if err
+                    next null, true
+                
+                let mods = ^mods
+                    ((err, end)->
+                        return if end
+                        @@callee.mod = mods.shift!
+                        return if !@@callee.mod
+                        _qwop_mod @@callee.mod, @@callee
+                    ) null
+                return _qwop!
+            _qwop!
+        walk.counter = 0
+        <- walk cant.config \localPath
+
     Module: require \./module
 
-handlers = []
+mods = []

@@ -1,39 +1,44 @@
+path = require \path
 sha1 = ->
     require \crypto .createHash \sha1 .update it .digest \hex
 module.exports = class Module
+    cant = require \../cant
+
     ->void
-    re: ''#route re
-    evalPath: ({req,res,next})->...#evaluate the local file path
-    evalCdnPath: (path)->...#evaluate the cdn path(from local file path relative to config `localpath`)
-    handleData: (data, {req,res,next})->...#handle the file data, must call res.end or next
+    handleData: (data, cb)->...#handle the file data, return cb(err,compiled_code)
 
     _modules = {}
     for name of [\stylus \stylus_nib \coco \raw] #lazy load
         let then @__defineGetter__ name, ->
             _modules["./#name"] || _modules["./#name"] = new (require "./#name")
 
-    config: -> require \../cant .config ...
-    attach: (cant)->
-        cant.register @re, !(req,res,next)~>
-            fs = require \fs
-            path = @evalPath {req, res, next}
+    config: -> cant.config ...
 
-            (err, stat)<~! fs.stat path
-            return next! if err
-            <~! cant.cache {req, res, next}, stat.mtime
+    handleRequest: !(path,[req,res,next])~>
+        fs = require \fs
+        path = (@config \localPath) + String::replace.apply path, @pattern
 
-            cpath = require \path .join './tmp', "cant.#{sha1 path}.dat"
-            (err, cstat)<~! fs.stat cpath
-            if !err && cstat.mtime >= stat.mtime
-                (err, data)<~! fs.readFile cpath
-                return next err||new Error if err||!data
-                return res.end data
-            (err, data)<~! fs.readFile path
+        (err, stat)<~! fs.stat path
+        return next! if err
+        <~! cant.cache {req, res, next}, stat.mtime
+
+        cpath = path.join './tmp', "cant.#{sha1 path}.dat"
+        (err)<~! (require \mkdirp) path.dirname cpath
+        return next err if err
+        
+        (err, cstat)<~! fs.stat cpath
+        if !err && cstat.mtime >= stat.mtime
+            (err, data)<~! fs.readFile cpath
             return next err||new Error if err||!data
+            return res.end data
 
-            (err, content)<~! @handleData data.toString!
-            return next err if err
-            (err)<~! fs.writeFile cpath, content
-            return next err if err
+        (err, data)<~! fs.readFile path
+        return next err||new Error if err||!data
 
-            res.end content
+        (err, content)<~! @handleData data.toString!
+        return next err if err
+
+        (err)<~! fs.writeFile cpath, content
+        return next err if err
+
+        res.end content

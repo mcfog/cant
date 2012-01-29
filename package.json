@@ -28,5 +28,6 @@
   }
   , "dependencies": {
     "connect": "1.x"
+    , "mkdirp": ">0.2.2"
   }
 }
