@@ -33,8 +33,6 @@ module.exports = cant =
         cant
 
     middleware: ->
-        routepath = @config \routePath
-        return if !routepath
         connect do
             connect.router !(app)->
                 app.get //#{cant.config \attachPoint}(/.+)$//

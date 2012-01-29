@@ -42,6 +42,11 @@
       return cant;
     },
     middleware: function(){
+      var routepath;
+      routepath = this.config('routePath');
+      if (!routepath) {
+        return;
+      }
       return connect(connect.router(function(app){
         app.get(RegExp(cant.config('attachPoint') + '(/.+)$'), function(req, res, next){
           var path, mod, re, match, _i, _ref, _len;
