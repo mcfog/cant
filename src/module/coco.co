@@ -1,7 +1,7 @@
 coco = require \coco
 module.exports = class extends require \./module
     ->super ...
-    pattern: ['(.+)\\.js$', '$1.co']
+    pattern: [/(.+)\.js$/, '$1.co']
     rpattern: ['(.+)\\.co$', '$1.js']
 
     handleData: !(data, cb)-> cb null, coco.compile data

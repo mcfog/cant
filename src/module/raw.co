@@ -1,6 +1,6 @@
 module.exports = class extends require \./module
     ->super ...
-    pattern: ['(.+)$', '$1']
+    pattern: [/(.+)$/, '$1']
     rpattern: ['(.+)$', '$1']
 
-    handleData: (data, cb)->cb null, data
+    handleData: !(data, cb)->cb null, data

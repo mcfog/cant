@@ -37,14 +37,20 @@ module.exports = cant =
             connect.router !(app)->
                 app.get //#{cant.config \attachPoint}(/.+)$//
                 , (req,res,next)->
+                    return next! if !req.params || !req.params.0
                     path = req.params.0
-                    for mod of mods
+
+                    let mods=^mods then do (err)->
+                        me = @@callee
+                        mod = mods.shift!
+                        return next! if !mod || !mod.pattern
+
                         re = mod.pattern.0
-                        re = if typeof re is \string then //#{routepath}#{re}// else re
+                        re = if typeof re is \string then //#re// else re
                         match = re.exec path
-                        continue if !match
-                        return mod.handleRequest path, @@
-                    next!
+                        return me! if !match
+
+                        mod.handleRequest path, [req,res,next], me
 
     cache: !({req, res}, mtime, cb)->
         expire = cant.config \expire
@@ -54,8 +60,9 @@ module.exports = cant =
             for [name,val] of (req.header \Cache-Control ?.split /\s*,\s*/ .map ->it.split /\s*=\s*/) || []
                 cc[name] = val if name && val 
             return res.writeHead 304 if cc['max-age'] > 0 && ifs && new Date ifs >= mtime
-            res.header \Cache-Control, "max-age=#expire"
-            res.header \Last-Modified, mtime.toGMTString!
+            try
+                res.header \Cache-Control, "max-age=#expire"
+                res.header \Last-Modified, mtime.toGMTString!
         cb!
     compile: !->
         fs = require \fs
@@ -80,7 +87,6 @@ module.exports = cant =
                     return _qwop!
                 
                 _qwop_mod = !(mod, next)->
-                    console.log [mod.rpattern, lpath]
                     re = mod.rpattern.0
                     re = if typeof re is \string then //#re// else re
                     return next true if !re.exec lpath
@@ -112,5 +118,8 @@ module.exports = cant =
         <- walk cant.config \localPath
 
     Module: require \./module
+
+cant.notfound = class
+    @prototype = Error::
 
 mods = []

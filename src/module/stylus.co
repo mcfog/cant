@@ -1,7 +1,7 @@
 stylus = require \stylus
 module.exports = class extends require \./module
     -> super ...
-    pattern: ['(.+)\\.css$', '$1.styl']
+    pattern: [/(.+)\.css$/, '$1.styl']
     rpattern: ['(.+)\\.styl$', '$1.css']
 
     getStylus: ->
@@ -9,7 +9,7 @@ module.exports = class extends require \./module
         .set \filename, @_path
         .set \compress, true
 
-    handleData: (data, cb)->
+    handleData: !(data, cb)->
         s = @getStylus data
 
         (err, css)<-! s.render

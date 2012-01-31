@@ -1,8 +1,11 @@
 path = require \path
+cant = null
+process.nextTick ->
+    cant := require \../cant
+
 sha1 = ->
     require \crypto .createHash \sha1 .update it .digest \hex
 module.exports = class Module
-    cant = require \../cant
 
     ->void
     handleData: (data, cb)->...#handle the file data, return cb(err,compiled_code)
@@ -12,17 +15,16 @@ module.exports = class Module
         let then @__defineGetter__ name, ->
             _modules["./#name"] || _modules["./#name"] = new (require "./#name")
 
-    config: -> cant.config ...
-
-    handleRequest: !(path,[req,res,next])~>
+    handleRequest: !(rpath,[req,res,next],cb)->
         fs = require \fs
-        path = (@config \localPath) + String::replace.apply path, @pattern
+        rpath = (cant.config \localPath) + String::replace.apply rpath, @pattern
 
-        (err, stat)<~! fs.stat path
-        return next! if err
+        (err, stat)<~! fs.stat rpath
+        return cb! if err
+        
         <~! cant.cache {req, res, next}, stat.mtime
 
-        cpath = path.join './tmp', "cant.#{sha1 path}.dat"
+        cpath = path.join './tmp', "cant.#{sha1 rpath}.dat"
         (err)<~! (require \mkdirp) path.dirname cpath
         return next err if err
         
@@ -32,7 +34,7 @@ module.exports = class Module
             return next err||new Error if err||!data
             return res.end data
 
-        (err, data)<~! fs.readFile path
+        (err, data)<~! fs.readFile rpath
         return next err||new Error if err||!data
 
         (err, content)<~! @handleData data.toString!
