@@ -17,14 +17,15 @@ module.exports = class Module
 
     handleRequest: !(rpath,[req,res,next],cb)->
         fs = require \fs
-        rpath = (cant.config \localPath) + String::replace.apply rpath, @pattern
+        @rpath = (cant.config \localPath) + String::replace.apply rpath, @pattern
+        res.contentType @getContentType!
 
-        (err, stat)<~! fs.stat rpath
+        (err, stat)<~! fs.stat @rpath
         return cb! if err
         
         <~! cant.cache {req, res, next}, stat.mtime
 
-        cpath = path.join './tmp', "cant.#{sha1 rpath}.dat"
+        cpath = path.join './tmp', "cant.#{sha1 @rpath}.dat"
         (err)<~! (require \mkdirp) path.dirname cpath
         return next err if err
         
@@ -34,13 +35,15 @@ module.exports = class Module
             return next err||new Error if err||!data
             return res.end data
 
-        (err, data)<~! fs.readFile rpath
+        (err, data)<~! fs.readFile @rpath
         return next err||new Error if err||!data
 
-        (err, content)<~! @handleData data.toString!
+        (err, content)<~! @handleData data
         return next err if err
 
         (err)<~! fs.writeFile cpath, content
         return next err if err
 
         res.end content
+
+    getContentType: -> \text/plain

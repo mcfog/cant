@@ -4,3 +4,5 @@ module.exports = class extends require \./module
     rpattern: ['(.+)$', '$1']
 
     handleData: !(data, cb)->cb null, data
+
+    getContentType: -> @rpath

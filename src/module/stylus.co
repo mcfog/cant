@@ -10,8 +10,10 @@ module.exports = class extends require \./module
         .set \compress, true
 
     handleData: !(data, cb)->
-        s = @getStylus data
+        s = @getStylus data.toString!
 
         (err, css)<-! s.render
         return cb err if err
         cb null, css
+
+    getContentType: -> \text/css

@@ -4,4 +4,6 @@ module.exports = class extends require \./module
     pattern: [/(.+)\.js$/, '$1.co']
     rpattern: ['(.+)\\.co$', '$1.js']
 
-    handleData: !(data, cb)-> cb null, coco.compile data
+    handleData: !(data, cb)-> cb null, coco.compile data.toString!
+
+    getContentType: -> \text/javascript
