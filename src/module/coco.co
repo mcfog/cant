@@ -6,4 +6,4 @@ module.exports = class extends require \./module
 
     handleData: !(data, cb)-> cb null, coco.compile data.toString!
 
-    getContentType: -> \text/javascript
+    getContentType: -> \js
